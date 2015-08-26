@@ -1,0 +1,18 @@
+{
+  "name": "Chita",
+  "description": "Meow",
+  "repository": "https://github.com/oishoes/chita",
+  "logo": "https://obs.line-scdn.net/0m0154fb1f7251b62eecfb4cb197ff0dc2e32a81436613/f256x256png",
+  "addons": ["fixie:tricycle"],
+  "env": {
+    "LINE_CHANNEL_ID": {
+      "description": "LINE Channel ID"
+    },
+    "LINE_CHANNEL_SECRET": {
+      "description": "LINE Channel Secret"
+    },
+    "LINE_CHANNEL_MID": {
+      "description": "LINE Channel MID"
+    }
+  }
+}
