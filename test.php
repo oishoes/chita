@@ -10,30 +10,23 @@ define(CAT_APP, 2);
 
 foreach ($body['result'] as $msg) {
     $callback = false;
+    $app_type = 0;
 
     if (preg_match('/(fortune|おみくじ|mikuji|占い|運勢)/i', $msg['content']['text'])) {
-        $callback = true;
         $app_type = OMIKUJI_APP;
-    } elseif (preg_match('/(cat|pic|image|img|画像|ネコ|猫)/i', $msg['content']['text'])) {
-        $callback = true;
+    } elseif (preg_match('/(pic|image|img|cat|meow|neko|画像|ネコ|猫)/i', $msg['content']['text'])) {
         $app_type = CAT_APP;
-    } elseif (preg_match('/(おは|こん|おやすみ)/i', $msg['content']['text'])) {
-        $callback = true;
-    }
-    if (!$callback) {
-        continue;
     }
 
     $requestOptions = make_request($msg, $app_type);
 }
 
-function make_request($msg, $app_type) {
+function make_request($msg, $app_type = null) {
     $requestOptions = api_post_request($msg, $app_type);
-
     return $requestOptions;
 }
 
-function api_post_request($msg, $app_type) {
+function api_post_request($msg, $app_type = null) {
     $requestOptions = [
         'body' => json_encode([
             'to' => [$msg['content']['from']],
@@ -43,26 +36,29 @@ function api_post_request($msg, $app_type) {
         ]),
         'headers' => [
             'Content-Type' => 'application/json; charset=UTF-8',
-            'X-Line-ChannelID' => 'LINE_CHANNEL_ID',
-            'X-Line-ChannelSecret' => 'LINE_CHANNEL_SECRET',
-            'X-Line-Trusted-User-With-ACL' => 'LINE_CHANNEL_MID',
+            'X-Line-ChannelID' => getenv('LINE_CHANNEL_ID'),
+            'X-Line-ChannelSecret' => getenv('LINE_CHANNEL_SECRET'),
+            'X-Line-Trusted-User-With-ACL' => getenv('LINE_CHANNEL_MID'),
         ],
         'proxy' => [
-            'https' => 'FIXIE_URL',
+            'https' => getenv('FIXIE_URL'),
         ],
     ];
     return $requestOptions;
 }
 
-function get_content($msg, $app_type) {
+function get_content($msg, $app_type = null) {
     if ($app_type == OMIKUJI_APP) {
-        $msg['content'] = get_omikuji();
+        $ret = get_omikuji($msg);
     } elseif ($app_type == CAT_APP) {
-        $msg['content'] = get_cat();
-        $msg['content']['contentType'] = CONTENT_TYPE_IMAGE;
+        $ret = get_cat();
+    } else {
+        $content = $msg['content'];
+        $content['text'] = $content['text'].'にゃ〜';
+        $ret = $content;
     }
-            error_log(var_export($msg,true));
-    return $msg;
+    error_log(var_export($ret, true));
+    return $ret;
 }
 
 function get_cat() {
@@ -72,21 +68,24 @@ function get_cat() {
     $img_url    = (string)$xml->data->images->image->url;
     $source_url = (string)$xml->data->images->image->source_url;
 
-    $url_list['originalContentUrl'] = $img_url;
-    $url_list['previewImageUrl']    = $img_url;
-    $url_list['text']               = $source_url;
+    $ret['contentType'] = CONTENT_TYPE_IMAGE;
+    $ret['toType'] = 1;
+    $ret['originalContentUrl'] = $img_url;
+    $ret['previewImageUrl']    = $img_url;
+    $ret['text']               = $source_url;
 
-    return $url_list;
+    return $ret;
 }
 
-function get_omikuji () {
+function get_omikuji ($msg) {
+    $content = $msg['content'];
     $omikuji_list = array(
         100 => '吉瀬美智子',
         400 => 'カト吉',
         500 => '超吉',
-        1000 => '大吉',
+        3000 => '大吉',
         3000 => '中吉',
-        5000 => '吉',
+        3000 => '吉',
     );
 
     $index = 0;
@@ -100,8 +99,8 @@ function get_omikuji () {
     foreach ($omikuji_list as $rate => $luck) {
         $current_index += $rate;
         if ($rand <= $current_index) {
-            return $luck.' nya!';
-            break;
+            $content['text'] = $luck.' nya!';
+            return $content;
         }
     }
 }
